@@ -1,11 +1,16 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
 public class Login extends JFrame implements ActionListener {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2866021079198873989L;
 	JButton loginbtn = new JButton("Login");
 	JButton regbtn = new JButton("Register");
 	JTextField tf1 = new JTextField();
@@ -22,7 +27,13 @@ public class Login extends JFrame implements ActionListener {
 		} else if (arg0.getSource() == loginbtn) {
 			char[] pass2 = tf2.getPassword();
 			String passString2 = new String(pass2);
-			user.updatelogin(tf1.getText(), passString2);
+			try {
+				user.updatelogin(tf1.getText(), passString2);
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException | SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 

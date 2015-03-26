@@ -1,11 +1,16 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
 public class Register extends JFrame implements ActionListener {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6050814736352810690L;
 	JTextField tf1 = new JTextField();
 	JPasswordField tf2 = new JPasswordField(10);
 	JPasswordField tf3 = new JPasswordField(10);
@@ -28,7 +33,13 @@ public class Register extends JFrame implements ActionListener {
 			String passString2 = new String(pass2);
 			char[] pass3 = tf3.getPassword();
 			String passString3 = new String(pass3);
-			user.updateregister(tf1.getText(), passString2, passString3);
+			try {
+				user.updateregister(tf1.getText(), passString2, passString3);
+			} catch (InstantiationException | IllegalAccessException
+					| ClassNotFoundException | SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 

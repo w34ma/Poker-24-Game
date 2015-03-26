@@ -5,6 +5,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import java.rmi.*;
+import java.sql.SQLException;
 
 public class JPoker24Game implements Runnable {
 	private Remoteinterface r;
@@ -14,7 +15,13 @@ public class JPoker24Game implements Runnable {
 	private Register registerwindow;
 	private Login loginwindow;
 	private Mainwindow mainwindow;
-	private String currentusername;
+	// user personal info
+	public String name;
+	public String logintime;
+	public String gameplayed;
+	public String win;
+	public String avgwin;
+	public String rank;
 
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(new JPoker24Game(args[0]));
@@ -29,10 +36,12 @@ public class JPoker24Game implements Runnable {
 		}
 	}
 
-	public void updateregister(String a, String b, String c) {
+	public void updateregister(String a, String b, String c)
+			throws InstantiationException, IllegalAccessException,
+			ClassNotFoundException, SQLException {
 		try {
 			int flag = 0;
-			currentusername = a;
+			name = a;
 			if (a.length() == 0) {
 				JOptionPane.showMessageDialog(new JFrame(),
 						"User name is empty, type in user name", "Empty Name",
@@ -55,7 +64,16 @@ public class JPoker24Game implements Runnable {
 			sreg = r.registerservice(a, b, c);
 			if (sreg == 0 && flag == 0) {
 				registerwindow.frame.setVisible(false);
-				new Mainwindow(this);
+				String[] arr = r.collectdata(a);
+				this.name = a;
+				this.logintime = arr[0];
+				this.gameplayed = arr[1];
+				this.win = arr[2];
+				this.avgwin = arr[3];
+				this.rank = arr[4];
+				String[][] leadresult = r.rankBoard();
+				mainwindow = new Mainwindow(this, this.name, this.win,
+						this.gameplayed, this.rank, this.avgwin, leadresult);
 				mainwindow.setVisible(true);
 			}
 		} catch (RemoteException e) {
@@ -63,10 +81,11 @@ public class JPoker24Game implements Runnable {
 		}
 	}
 
-	public void updatelogin(String a, String b) {
+	public void updatelogin(String a, String b) throws InstantiationException,
+			IllegalAccessException, ClassNotFoundException, SQLException {
 		try {
 			int flag = 0;
-			currentusername = a;
+			name = a;
 			if (a.length() == 0) {
 				JOptionPane.showMessageDialog(new JFrame(),
 						"User name is empty, type in user name", "Empty Name",
@@ -83,15 +102,24 @@ public class JPoker24Game implements Runnable {
 			slogin = r.loginservice(a, b);
 			if (slogin == 0 && flag == 0) {
 				loginwindow.frame.setVisible(false);
-				new Mainwindow(this);
-				mainwindow.setVisible(true);
+				String[] arr = r.collectdata(a);
+				this.name = a;
+				this.logintime = arr[0];
+				this.gameplayed = arr[1];
+				this.win = arr[2];
+				this.avgwin = arr[3];
+				this.rank = arr[4];
+				String[][] leadresult = r.rankBoard();
+				mainwindow = new Mainwindow(this, this.name, this.win,
+						this.gameplayed, this.rank, this.avgwin, leadresult);
 			}
 		} catch (RemoteException e) {
 			System.err.println("Failed invoking RMI: " + e);
 		}
 	}
 
-	public void updatelogout(String a) {
+	public void updatelogout(String a) throws InstantiationException,
+			IllegalAccessException, ClassNotFoundException, SQLException {
 		try {
 			slogout = r.logoutservice(a);
 			mainwindow.setVisible(false);
@@ -122,13 +150,16 @@ public class JPoker24Game implements Runnable {
 	}
 
 	public String getusername() {
-		return this.currentusername;
+		return this.name;
+	}
+
+	public Remoteinterface getinterface() {
+		return this.r;
 	}
 
 	@Override
 	public void run() {
 		loginwindow = new Login(this);
 		registerwindow = new Register(this);
-		mainwindow = new Mainwindow(this);
 	}
 }

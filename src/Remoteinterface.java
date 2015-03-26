@@ -9,5 +9,10 @@ public interface Remoteinterface extends Remote {
 			throws RemoteException;
 
 	public int logoutservice(String name) throws RemoteException;
+
 	// making register,login,logout a service on server
+
+	public String[] collectdata(String name) throws RemoteException;
+
+	public String[][] rankBoard() throws RemoteException;
 }

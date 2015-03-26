@@ -1,22 +1,39 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.rmi.*;
 import java.rmi.server.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.Random;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 public class JPoker24GameServer extends UnicastRemoteObject implements
 		Remoteinterface {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3788462845858254702L;
+
+	private static final String DB_FILE = "jpoker24game.sqlite";
+
+	private Connection conn;
+
+	private long Servertime;
+
+	public JPoker24GameServer() throws SQLException, InstantiationException,
+			IllegalAccessException, ClassNotFoundException, RemoteException {
+		Class.forName("org.sqlite.JDBC").newInstance();
+		conn = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE);
+		Servertime = new Date().getTime();
+		System.out
+				.println("Database connection successful. And server time is "
+						+ Servertime);
+	}
 
 	public static void main(String[] args) {
 		try {
@@ -29,46 +46,45 @@ public class JPoker24GameServer extends UnicastRemoteObject implements
 		}
 	}
 
-	public JPoker24GameServer() throws RemoteException {
-	}
-
 	public synchronized int registerservice(String name, String password,
 			String password2) throws RemoteException {
 		try {
-			File f = null;
-			f = new File("UserInfo.txt");
-			f.createNewFile();
+			PreparedStatement stmt = conn
+					.prepareStatement("SELECT userName FROM userinfo WHERE userName = ?");
+			stmt.setString(1, name);
 
-			BufferedReader br = new BufferedReader(new FileReader(
-					"UserInfo.txt"));
-			String thisline;
-			while ((thisline = br.readLine()) != null) {
-				String[] parts = thisline.split(" ");
-				String typename = parts[0];
-				if (typename.equals(name)) {
-					JOptionPane.showMessageDialog(new JFrame(),
-							"User name is oppucied, please use another one",
-							"Duplicated Name", JOptionPane.ERROR_MESSAGE);
-					return -1;
+			ResultSet rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				JOptionPane.showMessageDialog(new JFrame(),
+						"User name is oppucied, please use another one",
+						"Duplicated Name", JOptionPane.ERROR_MESSAGE);
+				return -1;
+			} else {
+				PreparedStatement stmt1 = conn
+						.prepareStatement("INSERT INTO userinfo(userName, password,gameplayed,loginTime) VALUES (?,?,?,?)");
+				stmt1.setString(1, name);
+				stmt1.setString(2, password);
+				Random rand = new Random();
+				int n = rand.nextInt(10) + 1;
+				stmt1.setInt(3, n);
+				stmt1.setLong(4, new Date().getTime());
+				stmt1.execute();
+				System.out.println("Record created in userinfo");
+				// update win history table
+				int records = rand.nextInt(n) + 1;
+				PreparedStatement stmtwin = conn
+						.prepareStatement("INSERT INTO winhistory(userName, winTime) VALUES (?,?)");
+				stmtwin.setString(1, name);
+				for (int i = 0; i < records; i++) {
+					Random randreal = new Random();
+					double x = 2 + 13 * randreal.nextDouble();
+					stmtwin.setDouble(2, x);
+					stmtwin.execute();
 				}
 			}
-
-			FileWriter fstream = new FileWriter("UserInfo.txt", true);
-			BufferedWriter fbw = new BufferedWriter(fstream);
-			fbw.write(name + " " + password + "\n");
-			fbw.close();
-
-			File onlinef = null;
-			onlinef = new File("OnlineUser.txt");
-			onlinef.createNewFile();
-
-			FileWriter fstream1 = new FileWriter("OnlineUser.txt", true);
-			BufferedWriter fbw1 = new BufferedWriter(fstream1);
-			fbw1.write(name + " " + password + "\n");
-			fbw1.close();
-
-		} catch (IOException e) {
-			System.out.println("File I/O error!");
+		} catch (SQLException | IllegalArgumentException e) {
+			System.err.println("Error inserting record: " + e);
 		}
 		return 0;
 	}
@@ -76,101 +92,110 @@ public class JPoker24GameServer extends UnicastRemoteObject implements
 	public synchronized int loginservice(String name, String password)
 			throws RemoteException {
 		try {
-			String thisline;
-			String checkname = null;
-			String checkpassword = null;
-			File onlinef = null;
-			onlinef = new File("OnlineUser.txt");
-			onlinef.createNewFile();
-			BufferedReader logged = new BufferedReader(new FileReader(
-					"OnlineUser.txt"));
-			// check whether the user has already logged in
-			while ((thisline = logged.readLine()) != null) {
-				String[] parts = thisline.split(" ");
-				checkname = parts[0];
-				checkpassword = parts[1];
-				if (checkname.equals(name) && checkpassword.equals(password)) {
+			PreparedStatement stmt = conn
+					.prepareStatement("SELECT password,loginTime FROM userinfo WHERE userName = ?");
+			stmt.setString(1, name);
+
+			ResultSet rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				if (!rs.getString(1).equals(password)) {
+					JOptionPane.showMessageDialog(new JFrame(),
+							"Invalid password", "Invalid  login name/password",
+							JOptionPane.ERROR_MESSAGE);
+					return -1;
+				} else if (rs.getLong(2) >= Servertime) {
 					JOptionPane.showMessageDialog(new JFrame(),
 							"The user has already loggin in the game",
 							"Already logged in", JOptionPane.ERROR_MESSAGE);
 					return -1;
-				}
-			}
-			// check whether the use has registered
-			File f = null;
-			f = new File("UserInfo.txt");
-			f.createNewFile();
-			BufferedReader br = new BufferedReader(new FileReader(
-					"UserInfo.txt"));
-			int status = 0;
-
-			while ((thisline = br.readLine()) != null) {
-				String[] parts1 = thisline.split(" ");
-				checkname = parts1[0];
-				checkpassword = parts1[1];
-				if (checkname.equals(name)) {
-					if (checkpassword.equals(password)) {
-						status = 1;// the user information match, can log in
+				} else {
+					// update login time here
+					PreparedStatement stmt1 = conn
+							.prepareStatement("UPDATE userinfo SET loginTime = ? WHERE userName = ?");
+					stmt1.setLong(1, new Date().getTime());
+					stmt1.setString(2, name);
+					int rows = stmt1.executeUpdate();
+					if (rows > 0) {
+						System.out.println("Userinfo of " + name + " updated");
 					} else {
-						// the user information not matching, cannot log in
-						status = 1;
-						JOptionPane.showMessageDialog(new JFrame(),
-								"Invalid password",
-								"Invalid  login name/password",
-								JOptionPane.ERROR_MESSAGE);
-						return -1;
+						System.err.println(name + " not found!");
 					}
 				}
-			}
-
-			if (status == 0) {// means the user have not register
+			} else {
 				JOptionPane.showMessageDialog(new JFrame(),
 						"Invalid login name, please go to register first",
 						"Invalid  login name/password",
 						JOptionPane.ERROR_MESSAGE);
 				return -1;
 			}
-
-			FileWriter fstream1 = new FileWriter("OnlineUser.txt", true);
-			BufferedWriter fbw1 = new BufferedWriter(fstream1);
-			fbw1.write(name + " " + password + "\n");
-			fbw1.close();
-		} catch (IOException e) {
-			System.out.println("File I/O error!");
+		} catch (SQLException | IllegalArgumentException e) {
+			System.err.println("Error inserting record: " + e);
 		}
 		return 0;
 	}
 
 	public synchronized int logoutservice(String name) throws RemoteException {
 		try {
-			String thisline;
-			List<String> lst = new ArrayList<String>();
-			Writer writer = null;
-			File onlinef = null;
-			onlinef = new File("OnlineUser.txt");
-			onlinef.createNewFile();
-			BufferedReader logged = new BufferedReader(new FileReader(
-					"OnlineUser.txt"));
-			while ((thisline = logged.readLine()) != null) {
-				String[] parts = thisline.split(" ");
-				String checkname = parts[0];
-				if (checkname.equals(name)) {
-					continue;
-				} else {
-					lst.add(thisline);
-				}
-			}
-			logged.close();
+			PreparedStatement stmt = conn
+					.prepareStatement("UPDATE userinfo SET loginTime = ? WHERE userName = ?");
+			stmt.setInt(1, 0);
+			stmt.setString(2, name);
 
-			writer = new BufferedWriter(new OutputStreamWriter(
-					new FileOutputStream("OnlineUser.txt"), "utf-8"));
-			for (int i = 0; i < lst.size(); i++) {
-				writer.write(lst.get(i) + "\n");
+			int rows = stmt.executeUpdate();
+			if (rows > 0) {
+				System.out.println("LoginTime of " + name + " updated");
+			} else {
+				System.err.println(name + " not found!");
 			}
-			writer.close();
-		} catch (IOException e) {
-			System.out.println("File I/O error!");
+		} catch (SQLException | IllegalArgumentException e) {
+			System.err.println("Error inserting login record: " + e);
 		}
 		return 0;
+	}
+
+	public synchronized String[] collectdata(String name)
+			throws RemoteException {
+		String[] arr = new String[5];
+		try {
+			PreparedStatement stmt = conn
+					.prepareStatement("SELECT u2.userName,u2.loginTime,u2.gamePlayed,COUNT(w2.winTime) as win,AVG(w2.winTime) as avgWin,( SELECT COUNT(*) FROM ( SELECT u1.userName AS name,COUNT(w1.winTime) as win,u1.gamePlayed,AVG(w1.winTime) as avgWin FROM userinfo AS u1 LEFT JOIN winhistory AS w1 ON u1.userName=w1.userName GROUP BY u1.userName ) t1  WHERE ( t1.win > count(w2.winTime) ) OR  ( t1.win = count(w2.winTime) AND t1.gamePlayed < u2.gamePlayed ) OR ( t1.win = count(w2.winTime) AND t1.gamePlayed = u2.gamePlayed AND t1.avgWin < AVG(w2.winTime) ) )+1 as RANK FROM userinfo AS u2 LEFT JOIN winhistory AS w2 ON u2.userName=w2.userName WHERE u2.userName = ? GROUP BY u2.userName");
+			stmt.setString(1, name);
+			ResultSet rs = stmt.executeQuery();
+			if (rs.next()) {
+				arr[0] = String.valueOf(rs.getInt(2));
+				arr[1] = String.valueOf(rs.getInt(3));
+				arr[2] = String.valueOf(rs.getInt(4));
+				arr[3] = String.format("%.1f", rs.getFloat(5));
+				arr[4] = String.valueOf(rs.getInt(6));
+			} else {
+				System.err.println("no record for user " + name);
+				return null;
+			}
+		} catch (SQLException e) {
+			System.err.println("Error inserting record: " + e);
+		}
+		return arr;
+	}
+
+	public synchronized String[][] rankBoard() throws RemoteException {
+		String[][] arr = new String[10][5];
+		try {
+			PreparedStatement stmt = conn
+					.prepareStatement("SELECT u2.userName, u2.loginTime, u2.gamePlayed, COUNT(w2.winTime) as win, AVG(w2.winTime) as avgWin, ( SELECT COUNT(*) FROM ( SELECT u1.userName AS name, COUNT(w1.winTime) as win, u1.gamePlayed, AVG(w1.winTime) as avgWin FROM userinfo AS u1 LEFT JOIN winhistory AS w1 ON u1.userName=w1.userName GROUP BY u1.userName ) t1 WHERE ( t1.win > count(w2.winTime) ) OR ( t1.win = count(w2.winTime) AND t1.gamePlayed < u2.gamePlayed ) OR ( t1.win = count(w2.winTime) AND t1.gamePlayed = u2.gamePlayed AND t1.avgWin < AVG(w2.winTime) ) )+1 as RANK FROM userinfo AS u2 LEFT JOIN winhistory AS w2 ON u2.userName=w2.userName GROUP BY u2.userName ORDER BY RANK ASC LIMIT 10");
+			ResultSet rs = stmt.executeQuery();
+			int i = 0;
+			while (rs.next()) {
+				arr[i][0] = String.valueOf(rs.getInt(6));
+				arr[i][1] = String.valueOf(rs.getString(1));
+				arr[i][2] = String.valueOf(rs.getInt(4));
+				arr[i][3] = String.valueOf(rs.getInt(3));
+				arr[i][4] = String.format("%.1f", rs.getFloat(5)) + "s";
+				i++;
+			}
+		} catch (SQLException e) {
+			System.err.println("Error inserting record: " + e);
+		}
+		return arr;
 	}
 }
