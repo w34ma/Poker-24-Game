@@ -52,14 +52,14 @@ uncomment the line 65 in playground.java and line 48-59 and 76 in JPoker24GameSe
    Type: javax.jms.Topic
 
 ###NOTES:(init git locally, new branch locally, push to a new branch from a new place)
-git init
-git add README.md
-git commit -m "first commit"
-git remote add origin https://github.com/xxx/xxx.git
-git push -u origin master
-git branch Branch1
-git checkout Branch1
-git push origin Branch1
+git init </br>
+git add README.md </br>
+git commit -m "first commit" </br>
+git remote add origin https://github.com/xxx/xxx.git </br>
+git push -u origin master </br>
+git branch Branch1 // new branch locally </br> 
+git checkout Branch1 // switch to new branch </br>
+git push origin Branch1 // push new branch </br>
 
 
 
