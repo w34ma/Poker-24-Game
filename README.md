@@ -34,21 +34,32 @@ uncomment the line 65 in playground.java and line 48-59 and 76 in JPoker24GameSe
 ![alt tag](https://github.com/w34ma/Poker-24-Game/blob/game/pics/leadboard.png)
 
 ###ADDITIONS(glassfish setup localhost:4848)
-1. GlassFish 4 (Java EE 7 full platform) downloaded from
+1. GlassFish 4 (Java EE 7 full platform) downloaded from</br>
    https://glassfish.java.net/download.html.
-2. JMS host
+2. JMS host</br>
    Host is set to 0.0.0.0
-3. Connection factory
-   Name: jms/JPoker24GameConnectionFactory
-   Type: javax.jms.ConnectionFactory
+3. Connection factory</br>
+   Name: jms/JPoker24GameConnectionFactory</br>
+   Type: javax.jms.ConnectionFactory</br>
    Including a property of imqAddressList equals the IP address of the server
-4. Destination (Queue)
-   Name: jms/JPoker24GameQueue
-   Physical name: JPoker24GameQueue
+4. Destination (Queue)</br>
+   Name: jms/JPoker24GameQueue</br>
+   Physical name: JPoker24GameQueue</br>
    Type: javax.jms.Queue
-5. Destination (Topic)
-   Name: jms/JPoker24GameTopic
-   Physical name: JPoker24GameTopic
+5. Destination (Topic)</br>
+   Name: jms/JPoker24GameTopic</br>
+   Physical name: JPoker24GameTopic</br>
    Type: javax.jms.Topic
+
+###NOTES:(init git locally, new branch locally, push to a new branch from a new place)
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/xxx/xxx.git
+git push -u origin master
+git branch Branch1
+git checkout Branch1
+git push origin Branch1
+
 
 
