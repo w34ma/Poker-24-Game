@@ -56,7 +56,7 @@ git init </br>
 git add README.md </br>
 git commit -m "first commit" </br>
 git remote add origin https://github.com/xxx/xxx.git </br>
-git push -u origin master </br>
+//git push -u origin master </br>
 git branch Branch1 // new branch locally </br> 
 git checkout Branch1 // switch to new branch </br>
 git push origin Branch1 // push new branch </br>
